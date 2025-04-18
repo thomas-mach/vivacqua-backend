@@ -4,6 +4,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "prod": "NODE_ENV=production nodemon server.js",
     "dev": "nodemon --exec node server.js"
   },
   "author": "Thomas Mach",
