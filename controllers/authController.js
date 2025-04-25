@@ -1,12 +1,14 @@
+const User = require("../models/userModel");
+const Blacklist = require("../models/blacklistModel");
 const jwt = require("jsonwebtoken");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
-const User = require("../models/userModel");
 const { promisify } = require("util");
-const sendEmail = require("../utils/email");
-const emailMessage = require("../utils/emailMessages");
 const crypto = require("crypto");
 const ms = require("ms");
+const EmailService = require("../utils/EmailService");
+
+const emailService = new EmailService();
 
 const signToken = (id, duration) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -14,19 +16,6 @@ const signToken = (id, duration) =>
   });
 
 const createSendToken = (user, status, res, duration) => {
-  const {
-    name,
-    email,
-    role,
-    isVerified,
-    isActive,
-    profileImage,
-    lastLogin,
-    createdAt,
-    updatedAt,
-    avatar,
-  } = user;
-
   const token = signToken(user._id, duration);
 
   const cookieOptions = {
@@ -39,21 +28,6 @@ const createSendToken = (user, status, res, duration) => {
 
   res.cookie("jwt", token, cookieOptions);
   user.password = undefined;
-  res.status(200).json({
-    status: "success",
-    user: {
-      name,
-      email,
-      role,
-      isVerified,
-      isActive,
-      profileImage,
-      lastLogin,
-      createdAt,
-      updatedAt,
-      avatar,
-    },
-  });
 };
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -62,7 +36,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    if (existingUser.deactivatedAt !== null) {
+    if (!existingUser.isActive) {
       return res.status(200).json({
         status: "inactive",
         message: "Hai già un account disattivato. Vuoi riattivarlo?",
@@ -72,36 +46,6 @@ exports.signup = catchAsync(async (req, res, next) => {
       return next(new AppError("Email già in uso", 400));
     }
   }
-
-  // if (existingUser) {
-  //   if (!existingUser.isActive && existingUser.lastLogin !== null) {
-  //     existingUser.password = password;
-  //     existingUser.passwordConfirm = passwordConfirm;
-  //     await existingUser.save({ validateBeforeSave: false });
-
-  //     const verificationToken = signToken(existingUser._id, "1h");
-  //     const verificationUrl = `${req.protocol}://${req.get(
-  //       "host"
-  //     )}/v1/auth/verify?token=${verificationToken}`;
-
-  //     await sendEmail({
-  //       email: existingUser.email,
-  //       subject: "Confirm the reactivation of your account.",
-  //       html: emailMessage.messageExistingUser(
-  //         existingUser.name,
-  //         verificationUrl
-  //       ),
-  //     });
-
-  //     return res.status(200).json({
-  //       status: "success",
-  //       message:
-  //         "Your account has been reactivated! Check your email to confirm.",
-  //     });
-  //   }
-
-  //   return next(new AppError("Email already in use!", 400));
-  // }
 
   const newUser = await User.create({
     name,
@@ -118,115 +62,138 @@ exports.signup = catchAsync(async (req, res, next) => {
     },
   });
 
-  const verificationToken = signToken(newUser._id, "1h");
+  const verificationToken = signToken(newUser._id, "10m");
   const verificationUrl = `${req.protocol}://${req.get(
     "host"
   )}/v1/auth/verify?token=${verificationToken}`;
 
   try {
-    await sendEmail({
-      email: newUser.email,
-      subject: "Confirm the activation of your account.",
-      html: emailMessage.messageNewUser(newUser.name, verificationUrl),
-    });
-
+    await emailService.sendVerificationEmail(newUser, verificationUrl, true);
+    const { name, email } = newUser;
     res.status(200).json({
       status: "success",
+      data: {
+        name,
+        email,
+      },
       message:
-        "Signup successful. Please check your email to verify your account.",
+        "Registrazione avvenuta con successo. Controlla la tua email per verificare l'account.",
     });
   } catch (err) {
     await User.findByIdAndDelete(newUser._id);
     return next(
-      new AppError("There was an error sending emial try again later!"),
-      500
+      new AppError(
+        "Si è verificato un errore durante l'invio dell'email di verifica. La registrazione è stata annullata. Riprova più tardi.",
+        500
+      )
     );
   }
 });
 
-exports.verifyEmail = catchAsync(async (req, res, next) => {
+exports.verifyAccount = catchAsync(async (req, res, next) => {
   const { token } = req.query;
 
   if (!token) {
-    return next(new AppError("Missing token", 400));
+    return next(new AppError("Token mancante", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new AppError("Invalid or expired token", 400));
+    return next(new AppError("Token non valido o scaduto", 400));
   }
 
   const user = await User.findById(decoded.id);
 
   if (!user) {
-    return next(new AppError("User not found", 400));
+    return next(new AppError("Utente non trovato", 400));
   }
 
-  if (user.isVerified) {
-    return next(new AppError("Email already verified!", 400));
+  if (user.isVerified && user.isActive) {
+    return next(new AppError("Email già verificata!", 400));
   }
 
   user.isVerified = true;
   user.isActive = true;
   user.deactivatedAt = null;
+  user.lastLogin = Date.now();
 
   await user.save({ validateBeforeSave: false });
 
+  const { name, email, isActive, isVerified } = user;
+
+  createSendToken(user, 201, res, "7d");
+
   res.status(200).json({
     status: "success",
-    data: user,
+    data: {
+      name,
+      email,
+      isActive,
+      isVerified,
+    },
   });
-
-  // res.redirect(`${process.env.FRONTEND_URL}/auth-app-frontend/signin`);
 });
 
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new AppError("Fornire email e password", 400));
+    return next(new AppError("Fornisci email e password", 400));
   }
 
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
-    return next(new AppError("Utente con questo email non esiste", 400));
+    return next(new AppError("Email o password non valide", 401));
   }
 
   if (!user || !(await user.correctPassword(password, user.password))) {
     return next(new AppError("Email o password non valide", 401));
   }
 
-  if (!user.isActive) {
+  if (!user.isVerified) {
+    const { name, email, isVerified, isActive } = user;
     return res.status(400).json({
       status: "failed",
-      message: "Please verify yor email adress",
-      email: user.email,
-      name: user.name,
-      isVerified: user.isVerified,
+      message: "Per favore verifica il tuo indirizzo email",
+      data: {
+        name,
+        isVerified,
+      },
     });
   }
 
   user.lastLogin = Date.now();
   await user.save({ validateBeforeSave: false });
   createSendToken(user, 201, res, "7d");
+  const { name, isActive, isVerified, lastLogin } = user;
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      name,
+      email,
+      isActive,
+      isVerified,
+      lastLogin,
+    },
+  });
 });
 
 exports.logout = catchAsync(async (req, res, next) => {
-  // const token = req.cookies.jwt; // Prendi il token dal cookie
+  const token = req.cookies.jwt; // Prende il token dal cookie
 
-  // if (token) {
-  //   try {
-  //     const decoded = jwt.decode(token);
-  //     const expiration = new Date(decoded.exp * 1000);
-
-  //     await Blacklist.create({ token: token, expiresAt: expiration });
-  //   } catch (error) {
-  //     console.error("Errore decodifica JWT:", error);
-  //   }
-  // }
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      const expiration = new Date(decoded.exp * 1000);
+      await Blacklist.create({ token: token, expiresAt: expiration });
+    } catch (error) {
+      console.error("Errore decodifica JWT:", error);
+    }
+  }
 
   res.clearCookie("jwt", {
     httpOnly: true,
@@ -235,12 +202,11 @@ exports.logout = catchAsync(async (req, res, next) => {
     path: "/",
   });
 
-  res.status(200).json({ status: "success", message: "You are logged out" });
+  res.status(200).json({ status: "success", message: "Logout effettuato" });
 });
 
 exports.protect = catchAsync(async (req, res, next) => {
   let token;
-  console.log(req.cookies);
   if (req.cookies.jwt) {
     token = req.cookies.jwt;
   } else if (
@@ -251,26 +217,27 @@ exports.protect = catchAsync(async (req, res, next) => {
   }
 
   if (!token) {
-    return next(new AppError("Prima devi fare login", 401));
+    return next(new AppError("Effettua prima il login", 401));
+  }
+
+  const blacklistedToken = await Blacklist.findOne({ token });
+  if (blacklistedToken) {
+    return next(new AppError("Token non valido. Sei stato disconnesso", 401));
   }
 
   const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-  console.log(decoded);
-
   const freshUser = await User.findById(decoded.id);
-  console.log(freshUser);
+
   if (!freshUser || !freshUser.isActive) {
     return next(
-      new AppError("Utente di questo token non esiste piu o e deattivato", 401)
+      new AppError("Utente di questo token non esiste più o è disattivato", 401)
     );
   }
-
-  console.log(freshUser.changesPasswordAfter(decoded.iat));
 
   if (freshUser.changesPasswordAfter(decoded.iat)) {
     return next(
       new AppError(
-        "Utente ha cambiato passsord di recente efrttuare login",
+        "L'utente ha recentemente cambiato password. Effettua di nuovo il login.",
         401
       )
     );
@@ -279,10 +246,10 @@ exports.protect = catchAsync(async (req, res, next) => {
   next();
 });
 
-exports.rsstricTo = (...roles) => {
+exports.restricTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return new AppError("Non hai permesso per fare questo", 403);
+      return new AppError("Non hai i permessi per fare questo", 403);
     }
     next();
   };
@@ -296,7 +263,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
 
   if (!user) {
-    return next(new AppError("Utente con questo e-mail non esiste", 404));
+    return next(new AppError("Utente con questa email non esiste", 404));
   }
 
   const resetToken = user.createResetPasswordToken();
@@ -304,21 +271,20 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   const resetURL = `${req.protocol}://${req.get(
     "host"
-  )}/api/v1/auth/forgotPassword/${resetToken}`;
+  )}/api/v1/auth/resetPassword/${resetToken}`;
 
-  const message = `Hai dimenticato la password? ${resetURL}`;
+  try {
+    await emailService.sendResetPasswordEmail(user, resetURL);
 
-  await sendEmail({
-    email: user.email,
-    subject: "reset token",
-    message: message,
-  });
-
-  res.status(200).json({
-    status: "success",
-    message: "Token via mail",
-    resetURL: resetURL,
-  });
+    res.status(200).json({
+      status: "success",
+      message: "Email per il reset della password inviata",
+    });
+  } catch (err) {
+    return next(
+      new AppError("Errore durante l'invio dell'email. Riprova più tardi!", 500)
+    );
+  }
 });
 
 exports.resetPassword = catchAsync(async (req, res, next) => {
@@ -326,14 +292,13 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     .createHash("sha256")
     .update(req.params.token)
     .digest("hex");
-
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
   });
 
   if (!user) {
-    return next(new AppError("Token invalido o scaduto", 400));
+    return next(new AppError("Token non valido o scaduto", 400));
   }
 
   user.password = req.body.password;
@@ -343,11 +308,9 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
   await user.save();
 
-  const token = signToken(user.id);
-
   res.status(200).json({
     status: "success",
-    token,
+    message: "Nuova password impostata. Effettua il login.",
   });
 });
 
@@ -355,26 +318,72 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
 
   if (!(await user.correctPassword(req.body.password, user.password))) {
-    return next(new AppError("Your current password is wrong", 401));
+    return next(new AppError("La password attuale non è corretta", 401));
   }
 
   if (await user.correctPassword(req.body.passwordNew, user.password)) {
     return next(
-      new AppError("Your new password must be different from the old one", 400)
+      new AppError(
+        "La nuova password deve essere diversa da quella attuale",
+        400
+      )
     );
   }
 
   user.password = req.body.passwordNew;
   user.passwordConfirm = req.body.passwordConfirm;
   await user.save();
-  const token = signToken(user.id);
+
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      const expiration = new Date(decoded.exp * 1000);
+      await Blacklist.create({ token: token, expiresAt: expiration });
+    } catch (error) {
+      console.error("Errore decodifica JWT:", error);
+    }
+  }
+
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    path: "/",
+  });
 
   res.status(200).json({
     status: "success",
-    token,
+    message:
+      "Password aggiornata con successo. Per motivi di sicurezza, effettua di nuovo il login.",
   });
 });
 
-// exports.reactivateUser = catchAsync(async (req, res, next) =>{
-//   const userToReactive = User.
-// })
+exports.reactivateUser = catchAsync(async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    next(new AppError("Utente non trovato", 404));
+  }
+
+  if (user.isActive) {
+    next(new AppError("Utente già attivo", 404));
+  }
+
+  const verificationToken = signToken(user._id, "10m");
+  const verificationUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/v1/auth/verify?token=${verificationToken}`;
+
+  try {
+    await emailService.sendVerificationEmail(user, verificationUrl, false);
+    res.status(200).json({
+      status: "success",
+      message: "Controlla la tua email per riattivare l'account",
+    });
+  } catch (err) {
+    return next(
+      new AppError("Errore durante l'invio dell'email. Riprova più tardi!", 500)
+    );
+  }
+});

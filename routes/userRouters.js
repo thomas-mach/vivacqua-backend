@@ -5,7 +5,7 @@ const userController = require("../controllers/userController");
 const router = express.Router();
 
 router.post("/signup", authController.signup);
-router.get("/verify", authController.verifyEmail);
+router.get("/verify", authController.verifyAccount);
 router.post("/login", authController.login);
 router.post("/logout", authController.logout);
 router.post("/forgotPassword", authController.forgotPassword);
@@ -20,6 +20,9 @@ router.delete(
   authController.protect,
   userController.softDeleteUser
 );
+
+router.patch("/updateMe", authController.protect, userController.updateMe);
+router.post("/reactivate", authController.reactivateUser);
 
 router.get("/test", authController.protect, (req, res, next) => {
   res.status(200).json({

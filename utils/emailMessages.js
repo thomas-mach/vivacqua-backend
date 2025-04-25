@@ -1,4 +1,5 @@
-exports.messageNewUser = (name, URL) => `
+exports.messageNewUser = (name, URL) =>
+  `
   <div style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
     <h1 style="color: #333;">Benvenuto in Vivaqua, ${name}!</h1>
     <p style="font-size: 16px; color: #555;">Clicca sul pulsante qui sotto per attivare il tuo account:</p>
@@ -13,21 +14,21 @@ exports.messageNewUser = (name, URL) => `
 
 exports.messageExistingUser = (name, URL) => `
     <div style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
-      <h1 style="color: #333;">Welcome back, ${name}!</h1>
-      <p style="font-size: 16px; color: #555;">Click the button below to activate your account:</p>
+      <h1 style="color: #333;">Bentornato, ${name}!</h1>
+      <p style="font-size: 16px; color: #555;">Clicca sul pulsante qui sotto per attivare il tuo account:</p>
       <a href="${URL}" 
          style="display: inline-block; padding: 12px 24px; font-size: 16px; 
                 color: #fff; background-color: #28a745; text-decoration: none; 
                 border-radius: 5px; font-weight: bold;">
-        Activate Account
+        Attiva Account
       </a>
     </div>
   `;
 
-exports.messageDeactivatedUser = (URL) => `
+exports.messageDeactivatedUser = (name, URL) => `
     <div style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
-      <h1 style="color: #333;">Your account has been deactivated, please sign up again.</h1>
-      <p style="font-size: 16px; color: #555;">Click the button below to sign up:</p>
+      <h1 style="color: #333;">Hi, ${name}. Your account has been deactivated.</h1>
+      <p style="font-size: 16px; color: #555;">Click the button below to activate:</p>
       <a href="${URL}" 
       style="display: inline-block; padding: 12px 24px; font-size: 16px; 
       color: #fff; background-color: #28a745; text-decoration: none; 
@@ -39,15 +40,16 @@ exports.messageDeactivatedUser = (URL) => `
   `;
 
 exports.messageResetPassword = (URL) => `
-    <div style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
-      <h1 style="color: #333;">Forgot your password? Click the link below to reset your password:</h1>
-      <p style="font-size: 16px; color: #555;">Click the button below to reset your password:</p>
-      <a href="${URL}" 
-      style="display: inline-block; padding: 12px 24px; font-size: 16px; 
-      color: #fff; background-color: #28a745; text-decoration: none; 
-      border-radius: 5px; font-weight: bold;">
-      Reset Password
-      </a>
-      <p style="font-size: 16px; color: #555;">This link will expire in 10 minutes.</p>
-    </div>
-  `;
+  <div style="text-align: center; font-family: Arial, sans-serif; padding: 20px;">
+    <h1 style="color: #333;">Richiesta di reimpostazione della password</h1>
+    <p style="font-size: 16px; color: #555;">Abbiamo ricevuto una richiesta per reimpostare la password del suo account.</p>
+    <p style="font-size: 16px; color: #555;">Per procedere, clicchi sul pulsante sottostante:</p>
+    <a href="${URL}" 
+    style="display: inline-block; padding: 12px 24px; font-size: 16px; 
+    color: #fff; background-color: #28a745; text-decoration: none; 
+    border-radius: 5px; font-weight: bold;">
+    Reimposta la password
+    </a>
+    <p style="font-size: 16px; color: #555;">Il link sarà valido per 10 minuti. Se non ha effettuato questa richiesta, può ignorare questo messaggio.</p>
+  </div>
+`;

@@ -1,6 +1,6 @@
+const dotenv = require("dotenv"); // Per caricare variabili d'ambiente dal file .env
 const http = require("http"); // Importa il modulo HTTP per creare il server manualmente
 const mongoose = require("mongoose"); // Per connettersi al database MongoDB
-const dotenv = require("dotenv"); // Per caricare variabili d'ambiente dal file .env
 const app = require("./app"); // Importa l'app Express
 const PORT = 3000; // Porta su cui gira il server
 
@@ -11,10 +11,10 @@ process.on("uncaughtException", (err) => {
   process.exit(1); // Termina l'app
 });
 
-dotenv.config(); // Carica le variabili d'ambiente
-
 const server = http.createServer(app); // Crea il server HTTP usando Express come gestore
-
+dotenv.config(); // Carica le variabili d'ambiente
+require("./jobs/deleteOldUsers");
+require("./jobs/deleteOldBlacklist");
 // Connessione a MongoDB
 mongoose.connect(process.env.DATABASE).then((con) => {
   console.log("🔌 Database connected... ✅");
