@@ -37,11 +37,9 @@ exports.signup = catchAsync(async (req, res, next) => {
 
   if (existingUser) {
     if (!existingUser.isActive) {
-      return res.status(200).json({
-        status: "inactive",
-        message: "Hai già un account disattivato. Vuoi riattivarlo?",
-        email: existingUser.email,
-      });
+      return next(
+        new AppError("Utente disattivato", 404, null, "ACCOUNT_DISABLED")
+      );
     } else {
       return next(new AppError("Email già in uso", 400));
     }
@@ -65,7 +63,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   const verificationToken = signToken(newUser._id, "10m");
   const verificationUrl = `${req.protocol}://${req.get(
     "host"
-  )}/v1/auth/verify?token=${verificationToken}`;
+  )}/api/v1/auth/verify?token=${verificationToken}`;
 
   try {
     await emailService.sendVerificationEmail(newUser, verificationUrl, true);
@@ -125,15 +123,17 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
 
   createSendToken(user, 201, res, "7d");
 
-  res.status(200).json({
-    status: "success",
-    data: {
-      name,
-      email,
-      isActive,
-      isVerified,
-    },
-  });
+  res.redirect("http://localhost:5173/auto-login");
+
+  // res.status(200).json({
+  //   status: "success",
+  //   data: {
+  //     name,
+  //     email,
+  //     isActive,
+  //     isVerified,
+  //   },
+  // });
 });
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -153,6 +153,12 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Email o password non valide", 401));
   }
 
+  if (!user.isActive) {
+    return next(
+      new AppError("Utente disattivato", 404, null, "ACCOUNT_DISABLED")
+    );
+  }
+
   if (!user.isVerified) {
     const { name, email, isVerified, isActive } = user;
     return res.status(400).json({
@@ -168,12 +174,13 @@ exports.login = catchAsync(async (req, res, next) => {
   user.lastLogin = Date.now();
   await user.save({ validateBeforeSave: false });
   createSendToken(user, 201, res, "7d");
-  const { name, isActive, isVerified, lastLogin } = user;
+  const { name, surname, isActive, isVerified, lastLogin } = user;
 
   res.status(200).json({
     status: "success",
-    data: {
+    user: {
       name,
+      surname,
       email,
       isActive,
       isVerified,
@@ -269,9 +276,11 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const resetToken = user.createResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetURL = `${req.protocol}://${req.get(
-    "host"
-  )}/api/v1/auth/resetPassword/${resetToken}`;
+  // const resetURL = `${req.protocol}://${req.get(
+  //   "host"
+  // )}/api/v1/auth/resetPassword/${resetToken}`;
+
+  const resetURL = `http://localhost:5173/reset-password?token=${resetToken}`;
 
   try {
     await emailService.sendResetPasswordEmail(user, resetURL);
@@ -373,7 +382,7 @@ exports.reactivateUser = catchAsync(async (req, res, next) => {
   const verificationToken = signToken(user._id, "10m");
   const verificationUrl = `${req.protocol}://${req.get(
     "host"
-  )}/v1/auth/verify?token=${verificationToken}`;
+  )}/api/v1/auth/verify?token=${verificationToken}`;
 
   try {
     await emailService.sendVerificationEmail(user, verificationUrl, false);

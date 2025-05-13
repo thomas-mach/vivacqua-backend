@@ -15,11 +15,13 @@ router.patch(
   authController.protect,
   authController.updatePassword
 );
-router.delete(
+router.patch(
   "/deleteMe",
   authController.protect,
   userController.softDeleteUser
 );
+
+router.get("/getMe", authController.protect, userController.getMe);
 
 router.patch("/updateMe", authController.protect, userController.updateMe);
 router.post("/reactivate", authController.reactivateUser);
@@ -29,5 +31,7 @@ router.get("/test", authController.protect, (req, res, next) => {
     message: "protect route",
   });
 });
+
+// router.post("/create-payment-intent", authController.stripeTest);
 
 module.exports = router;

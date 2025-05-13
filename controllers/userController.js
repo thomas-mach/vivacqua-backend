@@ -115,3 +115,21 @@ exports.updateMe = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+exports.getMe = catchAsync(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  const { name, surname, email } = user;
+
+  res.status(200).json({
+    status: "success",
+    user: {
+      name,
+      surname,
+      email,
+    },
+  });
+});
