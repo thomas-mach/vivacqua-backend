@@ -83,7 +83,7 @@ exports.updateMe = catchAsync(async (req, res, next) => {
       const verificationToken = signToken(user._id, "1h");
       const verificationUrl = `${req.protocol}://${req.get(
         "host"
-      )}/v1/auth/verify?token=${verificationToken}`;
+      )}/api/v1/auth/verify?token=${verificationToken}`;
 
       await sendEmail({
         email: user.email,
@@ -91,12 +91,20 @@ exports.updateMe = catchAsync(async (req, res, next) => {
         html: emailMessage.messageNewUser(user.name, verificationUrl),
       });
 
-      return res.status(200).json({
+      res.status(200).json({
         status: "success",
-        message: "Email di conferma inviata.",
+        message:
+          "Hai cambiato email. Controlla la tua casella di posta per confermare.",
         data: {
           user,
         },
+      });
+
+      res.clearCookie("jwt", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        path: "/",
       });
     } catch (err) {
       return next(
@@ -122,7 +130,8 @@ exports.getMe = catchAsync(async (req, res, next) => {
     return next(new AppError("User not found", 404));
   }
 
-  const { name, surname, email } = user;
+  const { name, surname, email, lastLogin, address } = user;
+  const { street, houseNumber, city, postalCode, doorbell } = address;
 
   res.status(200).json({
     status: "success",
@@ -130,6 +139,12 @@ exports.getMe = catchAsync(async (req, res, next) => {
       name,
       surname,
       email,
+      lastLogin,
+      street,
+      houseNumber,
+      city,
+      postalCode,
+      doorbell,
     },
   });
 });

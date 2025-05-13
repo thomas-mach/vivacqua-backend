@@ -174,7 +174,8 @@ exports.login = catchAsync(async (req, res, next) => {
   user.lastLogin = Date.now();
   await user.save({ validateBeforeSave: false });
   createSendToken(user, 201, res, "7d");
-  const { name, surname, isActive, isVerified, lastLogin } = user;
+  const { name, surname, isActive, isVerified, lastLogin, address } = user;
+  const { street, houseNumber, city, postalCode, doorbell } = address;
 
   res.status(200).json({
     status: "success",
@@ -185,6 +186,11 @@ exports.login = catchAsync(async (req, res, next) => {
       isActive,
       isVerified,
       lastLogin,
+      street,
+      houseNumber,
+      city,
+      postalCode,
+      doorbell,
     },
   });
 });

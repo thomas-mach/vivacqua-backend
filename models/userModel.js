@@ -7,22 +7,22 @@ const addressSchema = new mongoose.Schema(
   {
     street: {
       type: String,
-      required: [true, "Street is required"],
-      minlength: [3, "Street must be at least 3 characters"],
+      required: [true, "La via è obbligatoria"],
+      minlength: [3, "La via deve contenere almeno 3 caratteri"],
     },
     houseNumber: {
       type: String,
-      required: [true, "House number is required"],
+      required: [true, "Il numero civico è obbligatorio"],
     },
     city: {
       type: String,
-      required: [true, "City is required"],
-      minlength: [2, "City must be at least 2 characters"],
+      required: [true, "La città è obbligatoria"],
+      minlength: [2, "La città deve contenere almeno 2 caratteri"],
     },
     postalCode: {
       type: Number,
-      required: [true, "Postal code is required"],
-      match: [/^\d{5}$/, "Postal code must be 5 digits"], // italiano, tipo "00100"
+      required: [true, "Il CAP è obbligatorio"],
+      match: [/^\d{5}$/, "Il CAP deve contenere 5 cifre"],
     },
     doorbell: { type: String },
   },
@@ -33,43 +33,42 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "The name is required"],
-      minlength: [2, "Name must be at least 2 characters"],
+      required: [true, "Il nome è obbligatorio"],
+      minlength: [2, "Il nome deve contenere almeno 2 caratteri"],
     },
     surname: {
       type: String,
-      required: [true, "The sur name is required"],
-      minlength: [2, "Name must be at least 2 characters"],
+      required: [true, "Il cognome è obbligatorio"],
+      minlength: [2, "Il cognome deve contenere almeno 2 caratteri"],
     },
     email: {
       type: String,
-      required: [true, "The email is required"],
+      required: [true, "L'email è obbligatoria"],
       unique: true,
       trim: true,
-      maxlength: [255, "Email is too long"],
+      maxlength: [255, "L'email è troppo lunga"],
       validate: {
         validator: function (value) {
           return validator.isEmail(value);
         },
-        message: "Please provide a valid email address",
+        message: "Inserisci un indirizzo email valido",
       },
     },
     password: {
       type: String,
-      required: [true, "The password is required"],
-      minlength: [8, "Password must be at least 8 characters."],
+      required: [true, "La password è obbligatoria"],
+      minlength: [8, "La password deve contenere almeno 8 caratteri"],
       select: false,
     },
 
     passwordConfirm: {
       type: String,
-      required: [true, "The password is required"],
+      required: [true, "La conferma della password è obbligatoria"],
       validate: {
         validator: function (el) {
           return el === this.password;
         },
-
-        message: "The passwords are not the same",
+        message: "Le password non corrispondono",
       },
     },
     role: {

@@ -3,7 +3,7 @@ const AppError = require("../utils/appError");
 const handleDuplicateFieldsDB = (err) => {
   const field = Object.keys(err.keyValue)[0];
   const value = err.keyValue[field];
-  const message = `Duplicate field '${field}' with value '${value}'. Please use another value.`;
+  const message = `Il valore '${value}' per il campo '${field}' è già in uso. Per favore, usa un valore diverso.`;
   return new AppError(message, 400);
 };
 
@@ -12,19 +12,19 @@ const handleValidationErrorDB = (err) => {
     field: el.path,
     message: el.message,
   }));
-  return new AppError("Validation failed", 400, errors);
+  return new AppError("Validazione fallita", 400, errors);
 };
 
 const handleCastErrorDB = (err) => {
-  const message = `Invalid ${err.path}: ${err.value}`;
+  const message = `Valore non valido per il campo '${err.path}': '${err.value}'`;
   return new AppError(message, 400);
 };
 
 const handleJWTError = () =>
-  new AppError("Invalid token. Please log in again!", 401);
+  new AppError("Token non valido. Effettua nuovamente l'accesso!", 401);
 
 const handleJWTExpiredError = () =>
-  new AppError("Your token has expired! Please log in again.", 401);
+  new AppError("Il token è scaduto! Effettua nuovamente l'accesso.", 401);
 
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
@@ -44,16 +44,16 @@ const sendErrorProd = (err, res) => {
       isOperational: err.isOperational,
     });
   } else {
-    console.error("ERROR 💥:", err);
+    console.error("ERRORE 💥:", err);
     res.status(500).json({
       status: "error",
-      message: "Something went wrong!",
+      message: "Qualcosa è andato storto!",
     });
   }
 };
 
 module.exports = (err, req, res, next) => {
-  console.log("NODE_ENV is:", process.env.NODE_ENV);
+  console.log("NODE_ENV è:", process.env.NODE_ENV);
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
 
