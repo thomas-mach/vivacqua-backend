@@ -130,7 +130,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
     return next(new AppError("User not found", 404));
   }
 
-  const { name, surname, email, lastLogin, address } = user;
+  const { name, surname, email, role, lastLogin, address } = user;
   const { street, houseNumber, city, postalCode, doorbell } = address;
 
   res.status(200).json({
@@ -139,6 +139,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
       name,
       surname,
       email,
+      role,
       lastLogin,
       street,
       houseNumber,

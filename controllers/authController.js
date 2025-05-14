@@ -229,7 +229,13 @@ exports.protect = catchAsync(async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
   }
 
-  if (!token) {
+  if (
+    !token ||
+    token === "null" ||
+    token === "undefined" ||
+    typeof token !== "string" ||
+    token.trim().split(".").length !== 3 //controlla se token e HEADER.PAYLOAD.SIGNATURE
+  ) {
     return next(new AppError("Effettua prima il login", 401));
   }
 
@@ -262,7 +268,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 exports.restricTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return new AppError("Non hai i permessi per fare questo", 403);
+      return next(new AppError("Non hai i permessi per fare questo", 403));
     }
     next();
   };
