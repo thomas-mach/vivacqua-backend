@@ -7,8 +7,11 @@ const globalErrorHandling = require("./controllers/errorController");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const path = require("path");
 
 const app = express();
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -29,7 +32,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/v1/auth", userRouter);
-app.use("/api/v1/", productRouter);
+app.use("/api/v1/products", productRouter);
 // app.use("/api/v1/", orderRouter);
 // app.use("/api/v1/", paymentRouter);
 app.use(globalErrorHandling);

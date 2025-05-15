@@ -6,13 +6,14 @@ const mongoose = require("mongoose");
 const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 exports.createProduct = catchAsync(async (req, res, next) => {
+  const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
   const {
     name,
     description,
     price,
-    image,
     category,
     format,
+    packSize,
     available,
     active,
   } = req.body;
@@ -21,11 +22,12 @@ exports.createProduct = catchAsync(async (req, res, next) => {
     name,
     description,
     price,
-    image,
     category,
     format,
+    packSize,
     available,
     active,
+    image: imagePath,
   });
 
   res.status(200).json({

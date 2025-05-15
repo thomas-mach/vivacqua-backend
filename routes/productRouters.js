@@ -2,14 +2,20 @@ const express = require("express");
 const authController = require("../controllers/authController");
 const userController = require("../controllers/userController");
 const productController = require("../controllers/productController");
+const { upload, resizeImage } = require("../middleware/upload");
 
 const router = express.Router();
 
-router.get("/products", productController.getAllProducts);
+router.get("/", productController.getAllProducts);
 
 router.use(authController.protect, authController.restricTo("admin"));
+router.post(
+  "/",
+  upload.single("image"),
+  resizeImage,
+  productController.createProduct
+);
+router.delete("/:id", productController.deleteProduct);
+router.patch("/:id", productController.updateProduct);
 
-router.post("/product", productController.createProduct);
-router.delete("/product/:id", productController.deleteProduct);
-router.patch("/product/:id", productController.updateProduct);
 module.exports = router;

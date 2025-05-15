@@ -29,6 +29,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: "1L",
     },
+    packSize: {
+      type: Number,
+      default: "12",
+    },
     available: {
       type: Boolean,
       default: true,
