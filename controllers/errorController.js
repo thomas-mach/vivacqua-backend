@@ -56,6 +56,8 @@ module.exports = (err, req, res, next) => {
   console.log("NODE_ENV è:", process.env.NODE_ENV);
   err.statusCode = err.statusCode || 500;
   err.status = err.status || "error";
+  console.log("🔥 Errore ricevuto:", err.name);
+  console.log("🧱 Contenuto completo:", err);
 
   if (process.env.NODE_ENV === "development") {
     if (err.name === "ValidationError") {
@@ -69,6 +71,10 @@ module.exports = (err, req, res, next) => {
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === "production") {
     let error = { ...err, message: err.message, errors: err.errors };
+
+    // let error = Object.create(err);
+    // error.message = err.message;
+    // error.errors = err.errors;
 
     if (err.name === "CastError") error = handleCastErrorDB(err);
     if (err.code === 11000) error = handleDuplicateFieldsDB(err);

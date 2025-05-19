@@ -39,16 +39,14 @@ exports.createProduct = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getAllProducts = catchAsync(async (req, res, next) => {
+exports.getActiveProducts = catchAsync(async (req, res) => {
   const products = await Product.find({ active: true });
+  res.status(200).json({ status: "success", data: { products } });
+});
 
-  res.status(200).json({
-    status: "success",
-    message: "Products retrieved successfully",
-    data: {
-      products,
-    },
-  });
+exports.getAllProducts = catchAsync(async (req, res) => {
+  const products = await Product.find();
+  res.status(200).json({ status: "success", data: { products } });
 });
 
 exports.updateProduct = catchAsync(async (req, res, next) => {
@@ -82,6 +80,7 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
     format,
     available,
     active,
+    packSize,
   } = req.body;
 
   // Aggiorna le proprietà del prodotto esistente
@@ -93,6 +92,7 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
   product.format = format || product.format;
   product.available = available !== undefined ? available : product.available;
   product.active = active !== undefined ? active : product.active;
+  product.packSize = packSize || product.packSize;
 
   // Salva le modifiche
   await product.save();

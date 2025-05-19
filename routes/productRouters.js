@@ -6,9 +6,11 @@ const { upload, resizeImage } = require("../middleware/upload");
 
 const router = express.Router();
 
-router.get("/", productController.getAllProducts);
+router.get("/", productController.getActiveProducts);
 
-router.use(authController.protect, authController.restricTo("admin"));
+router.use(authController.protect, authController.restrictTo("admin"));
+
+router.get("/admin-products", productController.getAllProducts);
 router.post(
   "/",
   upload.single("image"),

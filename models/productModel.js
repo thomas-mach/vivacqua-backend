@@ -4,26 +4,27 @@ const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Il nome è obbligatorio"],
       trim: true,
     },
     description: {
       type: String,
-      required: true,
+      required: [true, "La descrizione è obbligatoria"],
+      trim: true,
     },
     price: {
       type: Number,
-      required: true,
-      min: 0,
+      required: [true, "Il prezzo è obbligatorio"],
+      min: [0, "Il prezzo non può essere negativo"],
     },
     image: {
       type: String,
-      required: false, // Una immagine principale
+      required: [true, "La foto è obbligatoria"],
     },
     category: {
       type: String,
-      required: true,
-      enum: ["naturale", "frizzante", "minerale"], // Possiamo aggiungere categorie se necessario
+      required: [true, "La categoria è obbligatoria"],
+      enum: ["naturale", "frizzante", "minerale"],
     },
     format: {
       type: String,
@@ -31,7 +32,8 @@ const productSchema = new mongoose.Schema(
     },
     packSize: {
       type: Number,
-      default: "12",
+      required: [true, "Il numero di bottiglie per cassa è obbligatorio."],
+      default: 12, // Corretto: era stringa, ora numero coerente
     },
     available: {
       type: Boolean,
