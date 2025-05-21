@@ -2,7 +2,7 @@ const express = require("express");
 const userRouter = require("./routes/userRouters");
 // const paymentRouter = require("./routes/paymentRouters");
 const productRouter = require("./routes/productRouters");
-// const orderRouter = require("./routes/orderRoutes");
+const orderRouter = require("./routes/orderRouters");
 const globalErrorHandling = require("./controllers/errorController");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
@@ -33,7 +33,7 @@ app.use((req, res, next) => {
 
 app.use("/api/v1/auth", userRouter);
 app.use("/api/v1/products", productRouter);
-// app.use("/api/v1/", orderRouter);
+app.use("/api/v1/order", orderRouter);
 // app.use("/api/v1/", paymentRouter);
 app.use(globalErrorHandling);
 
