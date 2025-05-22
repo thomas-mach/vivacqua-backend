@@ -1,59 +1,52 @@
-const Order = require("../models/orderModel"); // Importa il modello di ordine
-const Product = require("../models/productModel"); // Importa il modello di prodotto
-const User = require("../models/userModel"); // Importa il modello di utente
-const { ValidationError } = require("mongoose"); // Per gestire gli errori di validazione
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const Order = require("../models/orderModel");
+const Product = require("../models/productModel");
+const User = require("../models/userModel");
+const { ValidationError } = require("mongoose");
 
 // Crea un nuovo ordine
-exports.createOrder = async (req, res, next) => {
+exports.createOrder = catchAsync(async (req, res, next) => {
+  const { products, idempotencyKey } = req.body;
+
+  if (!products || products.length === 0) {
+    return next(new AppError("No products provided for the order.", 400));
+  }
+
+  if (!idempotencyKey) {
+    return next(new AppError("Idempotency key is required.", 400));
+  }
+
+  // Controlla se un ordine con questa chiave esiste già
+  const existingOrder = await Order.findOne({ idempotencyKey });
+  if (existingOrder) {
+    return res.status(200).json({
+      message: "Order already processed.",
+      order: existingOrder,
+    });
+  }
+
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    return next(new AppError("User not found.", 404));
+  }
+
+  const deliveryAddress = user.address;
+
+  const order = new Order({
+    userId: req.user.id,
+    idempotencyKey,
+    products,
+    deliveryAddress,
+  });
+
   try {
-    const { products, idempotencyKey } = req.body;
-
-    if (!products || products.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No products provided for the order." });
-    }
-
-    if (!idempotencyKey) {
-      return res.status(400).json({ message: "Idempotency key is required." });
-    }
-
-    // 🔍 Controlla se un ordine con questa chiave esiste già
-    const existingOrder = await Order.findOne({ idempotencyKey });
-    if (existingOrder) {
-      return res.status(200).json({
-        message: "Order already processed.",
-        order: existingOrder,
-      });
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    const deliveryAddress = user.address;
-
-    const order = new Order({
-      userId: req.user.id,
-      idempotencyKey, // ✅ Usa la chiave inviata
-      products,
-      deliveryAddress,
-    });
-
     await order.save();
-
-    res.status(201).json({
-      message: "Order successfully created!",
-      order,
-    });
   } catch (error) {
-    console.error(error);
     if (error instanceof ValidationError) {
-      return res.status(400).json({ message: error.message });
+      return next(new AppError(error.message, 400));
     }
-
-    // ⚠️ Se due richieste arrivano *contemporaneamente*, potrebbero causare un errore di chiave duplicata
+    // Gestione errore chiave duplicata (concorrenza)
     if (error.code === 11000 && error.keyPattern?.idempotencyKey) {
       const existingOrder = await Order.findOne({ idempotencyKey });
       return res.status(200).json({
@@ -61,108 +54,90 @@ exports.createOrder = async (req, res, next) => {
         order: existingOrder,
       });
     }
-
-    next(error);
+    return next(error);
   }
-};
+
+  res.status(201).json({
+    message: "Order successfully created!",
+    order,
+  });
+});
 
 // Recupera tutti gli ordini di un utente
-exports.getUserOrders = async (req, res, next) => {
-  try {
-    const orders = await Order.find({ userId: req.user.id }).populate(
-      "products.productId"
-    );
+exports.getUserOrders = catchAsync(async (req, res, next) => {
+  const orders = await Order.find({ userId: req.user.id }).populate(
+    "products.productId"
+  );
 
-    if (!orders || orders.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No orders found for this user." });
-    }
-
-    res.status(200).json({ orders });
-  } catch (error) {
-    next(error);
+  if (!orders || orders.length === 0) {
+    return next(new AppError("No orders found for this user.", 404));
   }
-};
+
+  res.status(200).json({ orders });
+});
 
 // Recupera un ordine specifico
-exports.getOrder = async (req, res, next) => {
-  try {
-    const order = await Order.findById(req.params.id).populate(
-      "products.productId"
-    );
+exports.getOrder = catchAsync(async (req, res, next) => {
+  const order = await Order.findById(req.params.orderId).populate(
+    "products.productId"
+  );
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found." });
-    }
-
-    res.status(200).json({ order });
-  } catch (error) {
-    next(error);
+  if (!order) {
+    return next(new AppError("Order not found.", 404));
   }
-};
+
+  if (req.user.id !== order.userId.toString()) {
+    return next(new AppError("Order non apartiene a questo utente"));
+  }
+
+  res.status(200).json({ order });
+});
 
 // Aggiorna lo stato di un ordine (solo per admin)
-exports.updateOrderStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body;
+exports.updateOrderStatus = catchAsync(async (req, res, next) => {
+  const { status } = req.body;
 
-    // Verifica se lo stato dell'ordine è valido
-    if (
-      !["In elaborazione", "Spedito", "Consegnato", "Annullato"].includes(
-        status
-      )
-    ) {
-      return res.status(400).json({ message: "Invalid status." });
-    }
-
-    // Controlla se l'ordine esiste
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ message: "Order not found." });
-    }
-
-    // Se l'utente non è admin, non può modificare lo stato
-    if (req.user.role !== "admin") {
-      return res
-        .status(403)
-        .json({ message: "You do not have permission to update this order." });
-    }
-
-    // Aggiorna lo stato dell'ordine
-    order.status = status;
-    await order.save();
-
-    res.status(200).json({
-      message: "Order status updated successfully.",
-      order,
-    });
-  } catch (error) {
-    next(error);
+  if (
+    !["In elaborazione", "Spedito", "Consegnato", "Annullato"].includes(status)
+  ) {
+    return next(new AppError("Invalid status.", 400));
   }
-};
+
+  const order = await Order.findById(req.params.id);
+  if (!order) {
+    return next(new AppError("Order not found.", 404));
+  }
+
+  if (req.user.role !== "admin") {
+    return next(
+      new AppError("You do not have permission to update this order.", 403)
+    );
+  }
+
+  order.status = status;
+  await order.save();
+
+  res.status(200).json({
+    message: "Order status updated successfully.",
+    order,
+  });
+});
 
 // Cancella un ordine (solo per admin o utente proprietario)
-exports.deleteOrder = async (req, res, next) => {
-  try {
-    const order = await Order.findById(req.params.id);
+exports.deleteOrder = catchAsync(async (req, res, next) => {
+  const order = await Order.findById(req.params.id);
 
-    if (!order) {
-      return res.status(404).json({ message: "Order not found." });
-    }
-
-    // Verifica che l'utente sia l'admin o il proprietario dell'ordine
-    if (req.user.role !== "admin" && req.user.id !== order.userId.toString()) {
-      return res
-        .status(403)
-        .json({ message: "You do not have permission to delete this order." });
-    }
-
-    // Elimina l'ordine
-    await order.remove();
-
-    res.status(200).json({ message: "Order deleted successfully." });
-  } catch (error) {
-    next(error);
+  if (!order) {
+    return next(new AppError("Order not found.", 404));
   }
-};
+
+  if (req.user.role !== "admin" && req.user.id !== order.userId.toString()) {
+    return next(
+      new AppError("You do not have permission to delete this order.", 403)
+    );
+  }
+
+  await order.remove();
+
+  res.status(200).json({ message: "Order deleted successfully." });
+});

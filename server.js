@@ -1,4 +1,5 @@
 const dotenv = require("dotenv"); // Per caricare variabili d'ambiente dal file .env
+dotenv.config(); // Carica le variabili d'ambiente
 const http = require("http"); // Importa il modulo HTTP per creare il server manualmente
 const mongoose = require("mongoose"); // Per connettersi al database MongoDB
 const app = require("./app"); // Importa l'app Express
@@ -12,7 +13,6 @@ process.on("uncaughtException", (err) => {
 });
 
 const server = http.createServer(app); // Crea il server HTTP usando Express come gestore
-dotenv.config(); // Carica le variabili d'ambiente
 require("./jobs/deleteOldUsers");
 require("./jobs/deleteOldBlacklist");
 // Connessione a MongoDB

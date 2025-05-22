@@ -65,6 +65,16 @@ class EmailService {
       html,
     });
   }
+
+  async messageOrderPaid(orderId, orderTotal) {
+    const html = emailTemplates.messageOrderPaid(orderId, orderTotal);
+
+    return this.send({
+      to: user.email,
+      subject: "Conferma pagamento VIVACQUA",
+      html,
+    });
+  }
 }
 
 module.exports = EmailService;

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.use(authController.protect);
 
-// router.get("/", productController.getActiveProducts);
 router.post("/", orderController.createOrder);
+router.get("/:orderId", orderController.getOrder);
 
 module.exports = router;
