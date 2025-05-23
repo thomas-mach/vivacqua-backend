@@ -42,6 +42,9 @@ const orderSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    userEmail: { type: String },
+    userName: { type: String },
+    userSurname: { type: String },
     deliveryAddress: {
       type: Object,
       required: true,

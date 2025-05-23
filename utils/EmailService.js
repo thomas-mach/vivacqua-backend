@@ -66,11 +66,11 @@ class EmailService {
     });
   }
 
-  async messageOrderPaid(orderId, orderTotal) {
+  async messageOrderPaid(userEmail, orderId, orderTotal) {
     const html = emailTemplates.messageOrderPaid(orderId, orderTotal);
 
     return this.send({
-      to: user.email,
+      to: userEmail,
       subject: "Conferma pagamento VIVACQUA",
       html,
     });

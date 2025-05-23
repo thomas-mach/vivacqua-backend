@@ -66,7 +66,11 @@ exports.handleWebhook = catchAsync(async (req, res, next) => {
     order.status = "paid";
     await order.save();
 
-    // await emailService.messageOrderPaid(orderId, order.totalAmount);
+    await emailService.messageOrderPaid(
+      order.userEmail,
+      orderId,
+      order.totalAmount
+    );
     console.log(`Ordine ${orderId} aggiornato a pagato`);
   }
 

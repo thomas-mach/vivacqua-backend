@@ -35,6 +35,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 
   const order = new Order({
     userId: req.user.id,
+    userEmail: req.user.email,
+    userName: req.user.name,
+    userSurname: req.user.surname,
     idempotencyKey,
     products,
     deliveryAddress,

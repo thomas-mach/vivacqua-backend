@@ -5,12 +5,17 @@
   "scripts": {
     "start": "node server.js",
     "prod": "NODE_ENV=production nodemon server.js",
-    "dev": "nodemon --exec node server.js"
+    "dev": "nodemon --exec node server.js",
+    "seed:users": "node seeders/seedUsers.js",
+    "seed:products": "node seeders/seedProducts.js",
+    "seed:orders": "node seeders/seedOrders.js",
+    "seed:all": "npm run seed:users && npm run seed:products && npm run seed:orders"
   },
   "author": "Thomas Mach",
   "license": "ISC",
   "description": "e-commerce api",
   "dependencies": {
+    "@faker-js/faker": "^9.8.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
