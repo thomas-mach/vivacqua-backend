@@ -13,6 +13,7 @@ const seedOrders = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     console.log("🟢 Connesso al DB");
+    await Order.deleteMany();
 
     const users = await User.find();
     const products = await Product.find();
@@ -25,7 +26,7 @@ const seedOrders = async () => {
 
     const orders = [];
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 300; i++) {
       const randomUser = faker.helpers.arrayElement(users);
       const selectedProducts = faker.helpers.arrayElements(products, {
         min: 1,
@@ -47,7 +48,7 @@ const seedOrders = async () => {
           "cancelled",
           "paid",
         ]),
-        orderDate: faker.date.recent({ days: 200 }),
+        orderDate: faker.date.recent({ days: 365 }),
         userEmail: randomUser.email,
         userName: randomUser.name,
         userSurname: randomUser.surname,
