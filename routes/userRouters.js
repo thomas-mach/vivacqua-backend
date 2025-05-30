@@ -26,12 +26,18 @@ router.get("/getMe", authController.protect, userController.getMe);
 router.patch("/updateMe", authController.protect, userController.updateMe);
 router.post("/reactivate", authController.reactivateUser);
 
-router.get("/test", authController.protect, (req, res, next) => {
-  res.status(200).json({
-    message: "protect route",
-  });
-});
+router.get(
+  "/allUsers",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.getAllUsers
+);
 
-// router.post("/create-payment-intent", authController.stripeTest);
+router.patch(
+  "/updateUserByAdmin/:id",
+  authController.protect,
+  authController.restrictTo("admin"),
+  userController.updateUserByAdmin
+);
 
 module.exports = router;

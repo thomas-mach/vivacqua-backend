@@ -9,6 +9,7 @@ const router = express.Router();
 router.use(authController.protect);
 
 router.post("/", orderController.createOrder);
+router.get("/getUserOrders", orderController.getUserOrders);
 router.get("/:orderId", orderController.getOrder);
 
 module.exports = router;

@@ -49,7 +49,7 @@ const seedUsers = async () => {
     ];
 
     // Genera 10 utenti fake con Faker
-    const fakeUsers = Array.from({ length: 10 }).map(() => ({
+    const fakeUsers = Array.from({ length: 100 }).map(() => ({
       name: faker.person.firstName(),
       surname: faker.person.lastName(),
       email: faker.internet.email().toLowerCase(),

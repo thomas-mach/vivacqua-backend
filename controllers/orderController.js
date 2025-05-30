@@ -68,9 +68,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
 
 // Recupera tutti gli ordini di un utente
 exports.getUserOrders = catchAsync(async (req, res, next) => {
-  const orders = await Order.find({ userId: req.user.id }).populate(
-    "products.productId"
-  );
+  const orders = await Order.find({ userId: req.user.id })
+    .populate("products.productId")
+    .sort({ orderDate: -1 });
 
   if (!orders || orders.length === 0) {
     return next(new AppError("No orders found for this user.", 404));
