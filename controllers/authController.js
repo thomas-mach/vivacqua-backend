@@ -123,17 +123,13 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
 
   createSendToken(user, 201, res, "7d");
 
-  res.redirect("http://localhost:5173/auto-login");
-
-  // res.status(200).json({
-  //   status: "success",
-  //   data: {
-  //     name,
-  //     email,
-  //     isActive,
-  //     isVerified,
-  //   },
-  // });
+  if (process.env.NODE_ENV === "development") {
+    res.redirect("http://localhost:5173/auto-login");
+  } else {
+    res.redirect(
+      "https://thomas-mach.github.io/vivacqua-frontend/#/auto-login"
+    );
+  }
 });
 
 exports.login = catchAsync(async (req, res, next) => {
