@@ -41,8 +41,7 @@ const sendErrorProd = (err, res) => {
       status: err.status,
       statusCode: err.statusCode,
       message: err.message,
-      code: err.code || null,
-      errors: err.errors || null,
+      error: err,
       isOperational: err.isOperational,
     });
   } else {
