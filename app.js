@@ -15,9 +15,14 @@ const path = require("path");
 const app = express();
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+const allowedOrigins = [
+  "https://thomas-mach.github.io",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true,
   })
@@ -46,5 +51,9 @@ app.use("/api/v1/products", productRouter);
 app.use("/api/v1/order", orderRouter);
 app.use("/api/v1/stats", statsRouter);
 app.use(globalErrorHandling);
+
+app.get("/", (req, res) => {
+  res.send("Vivacqua Backend è attivo ✅");
+});
 
 module.exports = app;

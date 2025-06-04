@@ -3,7 +3,7 @@ dotenv.config(); // Carica le variabili d'ambiente
 const http = require("http"); // Importa il modulo HTTP per creare il server manualmente
 const mongoose = require("mongoose"); // Per connettersi al database MongoDB
 const app = require("./app"); // Importa l'app Express
-const PORT = 3000; // Porta su cui gira il server
+const PORT = process.env.PORT || 3000;
 
 // Gestione di errori NON catturati nel codice sincrono
 process.on("uncaughtException", (err) => {
