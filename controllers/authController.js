@@ -124,6 +124,7 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
   createSendToken(user, 201, res, "7d");
 
   if (process.env.NODE_ENV === "development") {
+    console.log("NODE_ENV:", process.env.NODE_ENV);
     res.redirect("http://localhost:5173/auto-login");
   } else {
     res.redirect(
@@ -285,11 +286,12 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const resetToken = user.createResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
-  // const resetURL = `${req.protocol}://${req.get(
-  //   "host"
-  // )}/api/v1/auth/resetPassword/${resetToken}`;
-
-  const resetURL = `http://localhost:5173/reset-password?token=${resetToken}`;
+  let resetURL = ``;
+  if (process.env.NODE_ENV === "development") {
+    resetURL = `http://localhost:5173/reset-password?token=${resetToken}`;
+  } else if (process.env.NODE_ENV === "production") {
+    resetURL = `https://thomas-mach.github.io/vivacqua-frontend/#/reset-password?token=${resetToken}`;
+  }
 
   try {
     await emailService.sendResetPasswordEmail(user, resetURL);
