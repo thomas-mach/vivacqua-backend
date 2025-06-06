@@ -156,6 +156,7 @@ exports.login = catchAsync(async (req, res, next) => {
   );
 
   const data = response.data;
+  console.log("Google reCAPTCHA response data:", data);
 
   if (!data.success) {
     return res.status(400).send("Captcha non e valido");
