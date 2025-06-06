@@ -136,6 +136,7 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
   const token = req.body["g-recaptcha-response"];
+  console.log("recaptch", token);
   if (!token) {
     console.log("recaptcha", token);
     return next(new AppError("Captcha mancante", 400));
