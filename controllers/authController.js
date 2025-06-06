@@ -161,7 +161,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   const score = data.score;
   console.log("reCAPTCHA score:", score);
-  if (score <= 0.7) {
+  if (score <= 0.3) {
     // return res.status(403).send("Comportamento sospetto rilevato");
     return next(new AppError("Comportamento sospetto rilevato", 403));
   }
