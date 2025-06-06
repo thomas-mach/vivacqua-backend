@@ -7,6 +7,7 @@ const { promisify } = require("util");
 const crypto = require("crypto");
 const ms = require("ms");
 const EmailService = require("../utils/EmailService");
+const axios = require("axios");
 
 const emailService = new EmailService();
 
@@ -134,6 +135,37 @@ exports.verifyAccount = catchAsync(async (req, res, next) => {
 });
 
 exports.login = catchAsync(async (req, res, next) => {
+  const token = req.body["g-recaptcha-response"];
+  if (!token) {
+    return next(new AppError("Captcha mancante", 400));
+  }
+
+  const secret = process.env.CAPTCHA_3_SECRET;
+  const response = await axios.post(
+    `https://www.google.com/recaptcha/api/siteverify`,
+    null,
+    {
+      params: {
+        secret,
+        response: token,
+        remoteip: req.ip,
+      },
+    }
+  );
+
+  const data = response.data;
+
+  if (!data.success) {
+    return res.status(400).send("Captcha non valido");
+  }
+
+  const score = data.score;
+  console.log("reCAPTCHA score:", score);
+  if (score <= 0.7) {
+    // return res.status(403).send("Comportamento sospetto rilevato");
+    return next(new AppError("Comportamento sospetto rilevato", 403));
+  }
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -146,7 +178,7 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError("Email o password non valide", 401));
   }
 
-  if (!user || !(await user.correctPassword(password, user.password))) {
+  if (!(await user.correctPassword(password, user.password))) {
     return next(new AppError("Email o password non valide", 401));
   }
 
@@ -157,7 +189,7 @@ exports.login = catchAsync(async (req, res, next) => {
   }
 
   if (!user.isVerified) {
-    const { name, email, isVerified, isActive } = user;
+    const { name, email, isVerified } = user;
     return res.status(400).json({
       status: "failed",
       message: "Per favore verifica il tuo indirizzo email",
@@ -170,9 +202,11 @@ exports.login = catchAsync(async (req, res, next) => {
 
   user.lastLogin = Date.now();
   await user.save({ validateBeforeSave: false });
+
   createSendToken(user, 201, res, "7d");
+
   const { name, surname, isActive, isVerified, lastLogin, address } = user;
-  const { street, houseNumber, city, postalCode, doorbell } = address;
+  const { street, houseNumber, city, postalCode, doorbell } = address || {};
 
   res.status(200).json({
     status: "success",
