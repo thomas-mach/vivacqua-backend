@@ -43,6 +43,11 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    slug: {
+      type: String,
+      unique: true,
+      required: true,
+    },
   },
   { timestamps: true }
 );

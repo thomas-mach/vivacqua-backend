@@ -2,6 +2,7 @@ const catchAsync = require("../utils/catchAsync");
 const Product = require("../models/productModel");
 const AppError = require("../utils/appError");
 const mongoose = require("mongoose");
+const slugify = require("slugify");
 
 const validateObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
@@ -28,6 +29,7 @@ exports.createProduct = catchAsync(async (req, res, next) => {
     available,
     active,
     image: imagePath,
+    slug: slugify(name, { lower: true, strict: true }),
   });
 
   res.status(200).json({
@@ -93,6 +95,9 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
   product.available = available !== undefined ? available : product.available;
   product.active = active !== undefined ? active : product.active;
   product.packSize = packSize || product.packSize;
+  if (name && name !== product.name) {
+    product.slug = slugify(name, { lower: true, strict: true });
+  }
 
   // Salva le modifiche
   await product.save();

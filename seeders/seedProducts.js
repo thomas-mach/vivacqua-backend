@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const Product = require("../models/productModel"); // aggiorna path se serve
-
+const slugify = require("slugify");
 dotenv.config();
 
 const MONGO_URI = process.env.DATABASE;
@@ -13,7 +13,7 @@ const seedProducts = async () => {
 
     await Product.deleteMany();
 
-    const products = [
+    const productsRaw = [
       {
         name: "Goccia di carnia",
         description:
@@ -159,6 +159,11 @@ const seedProducts = async () => {
         active: true,
       },
     ];
+
+    const products = productsRaw.map((product) => ({
+      ...product,
+      slug: slugify(product.name, { lower: true, strict: true }),
+    }));
 
     await Product.create(products);
 
