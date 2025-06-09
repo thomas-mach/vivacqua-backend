@@ -74,6 +74,8 @@ exports.topFive = catchAsync(async (req, res, next) => {
     },
   ]);
 
+  console.log("topProducts", topProducts);
+
   res.status(200).json({
     status: "success",
     results: 5,
